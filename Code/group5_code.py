@@ -15,6 +15,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("ignore")
+pd.set_option('display.max_columns', 100)
 
 # %%-----------------------------------------------------------------------
 # Import the data
@@ -30,7 +31,7 @@ print('\n')
 print("Dataset No. of Rows: ", data.shape[0])
 print("Dataset No. of Columns: ", data.shape[1])
 print('\n')
-#print(data.describe(include='all'))
+print(data.describe(include='all'))
 print('\n')
 print(list(data))
 print('\n')
@@ -56,10 +57,9 @@ def num_var_plot(var):
     plt.rc('font',family='Times New Roman')
     plt.show()
 
-num_var_plot('AMT_CREDIT')
 num_var_plot('AMT_INCOME_TOTAL')
-num_var_plot('AMT_ANNUITY')
-num_var_plot('AMT_GOODS_PRICE')
+num_var_plot('CNT_CHILDREN')
+num_var_plot('DAYS_BIRTH')
 
 # Plot for categorical variables
 def cat_var_plot(var):
@@ -69,43 +69,47 @@ def cat_var_plot(var):
     graphdata['TARGET'].replace(target, inplace=True)
     graphdata=graphdata.pivot(index='TARGET',columns=var,values='freq')
     print(graphdata)
-    #x=graphdata['TARGET']
-    #y=graphdata[var]
-    #plt.bar(x, y, align='center',width=0.6,color='navy')
-    #plt.xticks(x)
-    #plt.ylabel(y)
-    #plt.title(var+' BY TARGET')
-    #plt.rc('font',family='Times New Roman')
-    #plt.show()
+    graphdata.plot.bar(stacked=True)
+    plt.xticks(rotation='horizontal')
+    plt.xlabel('Loan')
+    plt.ylabel('Frequency')
+    plt.rc('font', family='Times New Roman')
+    plt.show()
 
 cat_var_plot('NAME_CONTRACT_TYPE')
+cat_var_plot('CODE_GENDER')
+cat_var_plot('FLAG_OWN_REALTY')
 
 # %%-----------------------------------------------------------------------
 # Data pre-processing
 # Normalize the numerical variables
-nor_columns=['AMT_INCOME_TOTAL','AMT_CREDIT','DAYS_BIRTH','CNT_CHILDREN']
+nor_columns=['AMT_INCOME_TOTAL','DAYS_BIRTH','CNT_CHILDREN','CNT_FAM_MEMBERS']
+data['DAYS_BIRTH']=abs(data['DAYS_BIRTH'])
 for var in nor_columns:
     data[var] = (data[var] - data[var].min()) / (data[var].max() - data[var].min())
     print(data[var].describe())
+    print('\n')
 
 # Encode all the categorical variables
 obj_columns = data.select_dtypes(include=['object']).columns
 print(obj_columns)
 data[obj_columns] = data[obj_columns].astype('category')
 data[obj_columns] = data[obj_columns].apply(lambda x: x.cat.codes)
-print(data.dtypes)
 
-data = data[['TARGET','NAME_CONTRACT_TYPE','CODE_GENDER','FLAG_OWN_REALTY','CNT_CHILDREN',
+# Select variables to be included in the analysis
+data = data[['TARGET','NAME_CONTRACT_TYPE','CODE_GENDER','FLAG_OWN_CAR','FLAG_OWN_REALTY','CNT_CHILDREN',
              'AMT_INCOME_TOTAL','NAME_EDUCATION_TYPE','DAYS_BIRTH','REGION_RATING_CLIENT',
-             'AMT_REQ_CREDIT_BUREAU_DAY','EXT_SOURCE_1','EXT_SOURCE_2','EXT_SOURCE_3']]
+             'AMT_REQ_CREDIT_BUREAU_DAY','EXT_SOURCE_1','EXT_SOURCE_2','EXT_SOURCE_3','OCCUPATION_TYPE',
+             'REG_REGION_NOT_LIVE_REGION']]
 data_cash=data[data.NAME_CONTRACT_TYPE==0]
 data_rev=data[data.NAME_CONTRACT_TYPE==1]
+print(data.describe(include='all'))
 
 # %%-----------------------------------------------------------------------
 # split the dataset
 # separate the target variable
-x = data_cash.values[:, 2:]
-y = data_cash.values[:, 0]
+x = data.values[:, 1:]
+y = data.values[:, 0]
 
 # encloding the class with sklearn's LabelEncoder
 class_le = LabelEncoder()
@@ -115,7 +119,7 @@ y = class_le.fit_transform(y)
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=100)
 
 # %%-----------------------------------------------------------------------
-# perform training: SVC
+# Perform training: SVC
 # creating the classifier object
 clf = SVC(kernel="linear")
 # performing training
@@ -134,7 +138,7 @@ print("\n")
 
 # confusion matrix
 conf_matrix = confusion_matrix(y_test, y_pred)
-class_names = data_cash['TARGET'].unique()
+class_names = data['TARGET'].unique()
 
 df_cm = pd.DataFrame(conf_matrix, index=class_names, columns=class_names )
 plt.figure(figsize=(5,5))
@@ -160,11 +164,11 @@ plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
-plt.title('Loan Default')
+plt.title('Receiver Operating Characteristic Curve')
 plt.legend(loc="lower right")
 plt.show()
 
 # %%-----------------------------------------------------------------------
-# perform training:
+# Perform training:
 
 
