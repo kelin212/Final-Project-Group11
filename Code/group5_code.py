@@ -19,6 +19,7 @@ warnings.filterwarnings("ignore")
 # %%-----------------------------------------------------------------------
 # Import the data
 data=pd.read_csv("application_train.csv")
+data_bureau=pd.read_csv('bureau.csv')
 print(data.head())
 print(data.isnull().sum())
 print('\n')
@@ -82,7 +83,7 @@ cat_var_plot('NAME_CONTRACT_TYPE')
 # %%-----------------------------------------------------------------------
 # Data pre-processing
 # Normalize the numerical variables
-nor_columns=['AMT_INCOME_TOTAL','AMT_CREDIT','AMT_ANNUITY','AMT_GOODS_PRICE']
+nor_columns=['AMT_INCOME_TOTAL','AMT_CREDIT','DAYS_BIRTH','CNT_CHILDREN']
 for var in nor_columns:
     data[var] = (data[var] - data[var].min()) / (data[var].max() - data[var].min())
     print(data[var].describe())
@@ -94,11 +95,17 @@ data[obj_columns] = data[obj_columns].astype('category')
 data[obj_columns] = data[obj_columns].apply(lambda x: x.cat.codes)
 print(data.dtypes)
 
+data = data[['TARGET','NAME_CONTRACT_TYPE','CODE_GENDER','FLAG_OWN_REALTY','CNT_CHILDREN',
+             'AMT_INCOME_TOTAL','NAME_EDUCATION_TYPE','DAYS_BIRTH','REGION_RATING_CLIENT',
+             'AMT_REQ_CREDIT_BUREAU_DAY','EXT_SOURCE_1','EXT_SOURCE_2','EXT_SOURCE_3']]
+data_cash=data[data.NAME_CONTRACT_TYPE==0]
+data_rev=data[data.NAME_CONTRACT_TYPE==1]
+
 # %%-----------------------------------------------------------------------
 # split the dataset
 # separate the target variable
-x = data.values[:, 2:10]
-y = data.values[:, 1]
+x = data_cash.values[:, 2:]
+y = data_cash.values[:, 0]
 
 # encloding the class with sklearn's LabelEncoder
 class_le = LabelEncoder()
@@ -127,7 +134,7 @@ print("\n")
 
 # confusion matrix
 conf_matrix = confusion_matrix(y_test, y_pred)
-class_names = data['TARGET'].unique()
+class_names = data_cash['TARGET'].unique()
 
 df_cm = pd.DataFrame(conf_matrix, index=class_names, columns=class_names )
 plt.figure(figsize=(5,5))
