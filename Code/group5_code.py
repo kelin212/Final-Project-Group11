@@ -26,14 +26,11 @@ print(data.isnull().sum())
 print('\n')
 # Drop rows with missing values
 data=data.dropna()
+# Look at the structure of the data
 data.info()
 print('\n')
 print("Dataset No. of Rows: ", data.shape[0])
 print("Dataset No. of Columns: ", data.shape[1])
-print('\n')
-print(data.describe(include='all'))
-print('\n')
-print(list(data))
 print('\n')
 print(data.dtypes)
 print('\n')
@@ -101,72 +98,90 @@ data = data[['TARGET','NAME_CONTRACT_TYPE','CODE_GENDER','FLAG_OWN_CAR','FLAG_OW
              'AMT_INCOME_TOTAL','NAME_EDUCATION_TYPE','DAYS_BIRTH','REGION_RATING_CLIENT',
              'AMT_REQ_CREDIT_BUREAU_DAY','EXT_SOURCE_1','EXT_SOURCE_2','EXT_SOURCE_3','OCCUPATION_TYPE',
              'REG_REGION_NOT_LIVE_REGION']]
-data_cash=data[data.NAME_CONTRACT_TYPE==0]
-data_rev=data[data.NAME_CONTRACT_TYPE==1]
-print(data.describe(include='all'))
+#data_cash=data[data.NAME_CONTRACT_TYPE==0]
+#data_rev=data[data.NAME_CONTRACT_TYPE==1]
+print("Dataset No. of Rows: ", data.shape[0])
+print("Dataset No. of Columns: ", data.shape[1])
+print('\n')
+print(data.dtypes)
+print('\n')
+
+# Re-sample the data to reduce the over-represented class
+print(data["TARGET"].value_counts())
+print('\n')
+data1=data.loc[data['TARGET']==1]
+data0=data.loc[data['TARGET']==0].sample(n=data1.shape[0])
+print(data1.shape)
+print(data0.shape)
+data=pd.concat([data0,data1])
+print(data.shape)
 
 # %%-----------------------------------------------------------------------
-# split the dataset
-# separate the target variable
+# Split the dataset
+# Separate the target variable
 x = data.values[:, 1:]
 y = data.values[:, 0]
 
-# encloding the class with sklearn's LabelEncoder
-class_le = LabelEncoder()
-y = class_le.fit_transform(y)
-
-# split the dataset into train and test
+# Split the dataset into train and test
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=100)
 
 # %%-----------------------------------------------------------------------
-# Perform training: SVC
-# creating the classifier object
-clf = SVC(kernel="linear")
-# performing training
-clf.fit(x_train, y_train)
-# make predictions
-# predicton on test
-y_pred = clf.predict(x_test)
+# Perform SVM training
+# Create the classifier object
+def svm(kernel):
+    clf = SVC(kernel=kernel)
+    # perform training
+    clf.fit(x_train, y_train)
+    # make predictions on test
+    y_pred = clf.predict(x_test)
 
-# calculate metrics
-print("\n")
-print("Classification Report")
-print(classification_report(y_test,y_pred))
-print("\n")
-print("Accuracy: ",accuracy_score(y_test,y_pred)*100)
-print("\n")
+    # calculate metrics
+    print("\n")
+    print("Classification Report (Kernel="+kernel+")")
+    print(classification_report(y_test,y_pred))
+    print("\n")
+    print("Accuracy: ",accuracy_score(y_test,y_pred)*100)
+    print("\n")
 
-# confusion matrix
-conf_matrix = confusion_matrix(y_test, y_pred)
-class_names = data['TARGET'].unique()
+    # confusion matrix
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    class_names = data['TARGET'].unique()
 
-df_cm = pd.DataFrame(conf_matrix, index=class_names, columns=class_names )
-plt.figure(figsize=(5,5))
-hm = sns.heatmap(df_cm, cbar=False,annot=True, square=True, fmt='d', annot_kws={'size': 20}, yticklabels=df_cm.columns, xticklabels=df_cm.columns)
-hm.yaxis.set_ticklabels(hm.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=10)
-hm.xaxis.set_ticklabels(hm.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=10)
-plt.ylabel('True label',fontsize=20)
-plt.xlabel('Predicted label',fontsize=20)
-# Show heat map
-plt.tight_layout()
-plt.show()
+    df_cm = pd.DataFrame(conf_matrix, index=class_names, columns=class_names )
+    plt.figure(figsize=(5,5))
+    hm = sns.heatmap(df_cm, cbar=False,annot=True, square=True, fmt='d', annot_kws={'size': 20}, yticklabels=df_cm.columns, xticklabels=df_cm.columns)
+    hm.yaxis.set_ticklabels(hm.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=10)
+    hm.xaxis.set_ticklabels(hm.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=10)
+    plt.ylabel('True label',fontsize=14)
+    plt.xlabel('Predicted label',fontsize=14)
+    plt.title('Confusion Matrix (Kernel='+kernel+')',fontsize=16)
+    plt.rc('font', family='Times New Roman')
+    # Show heat map
+    plt.tight_layout()
+    plt.show()
 
-# Plot ROC Area Under Curve
-y_pred_proba = clf.decision_function(x_test)
-fpr, tpr, _ = roc_curve(y_test,  y_pred_proba)
-auc = roc_auc_score(y_test, y_pred_proba)
-plt.figure()
-lw = 2
-plt.plot(fpr, tpr, color='darkorange',
-         lw=lw, label='ROC curve (area = %0.2f)' % auc)
-plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic Curve')
-plt.legend(loc="lower right")
-plt.show()
+    # plot ROC Area Under Curve
+    y_pred_proba = clf.decision_function(x_test)
+    fpr, tpr, _ = roc_curve(y_test,  y_pred_proba)
+    auc = roc_auc_score(y_test, y_pred_proba)
+    plt.figure()
+    lw = 2
+    plt.plot(fpr, tpr, color='darkorange',
+             lw=lw, label='ROC curve (area = %0.2f)' % auc)
+    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate',fontsize=14)
+    plt.ylabel('True Positive Rate',fontsize=14)
+    plt.title('Receiver Operating Characteristic Curve (Kernel='+kernel+')',fontsize=16)
+    plt.legend(loc="lower right")
+    plt.rc('font', family='Times New Roman')
+    plt.show()
+
+svm('linear')
+svm('rbf')
+svm('poly')
+svm('sigmoid')
 
 # %%-----------------------------------------------------------------------
 # Perform training:
