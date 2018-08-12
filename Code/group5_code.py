@@ -199,6 +199,16 @@ print(obj_columns)
 data_rf[obj_columns] = data_rf[obj_columns].astype('category')
 data_rf[obj_columns] = data_rf[obj_columns].apply(lambda x: x.cat.codes)
 
+# Re-sample the data to reduce the over-represented class
+print(data_rf["TARGET"].value_counts())
+print('\n')
+data1=data_rf.loc[data['TARGET']==1]
+data0=data_rf.loc[data['TARGET']==0].sample(n=data1.shape[0])
+print(data1.shape)
+print(data0.shape)
+data_rf=pd.concat([data0,data1])
+print(data_rf.shape)
+
 # %%-----------------------------------------------------------------------
 # Perform training
 # split the dataset
