@@ -15,13 +15,22 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score
 from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
+import sys
+import os
+import wget
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_columns', 100)
 
 # %%-----------------------------------------------------------------------
+# Download the data from URL
+if os.path.isfile('application_train.csv'):
+    pass
+else:
+    wget.download('https://dl.dropboxusercontent.com/s/wbp7c2dh13n7cm2/application_train.csv?dl=0')
 # Import the data
 data=pd.read_csv("application_train.csv")
 print(data.head())
@@ -114,8 +123,8 @@ data_svm[obj_columns] = data_svm[obj_columns].apply(lambda x: x.cat.codes)
 # Re-sample the data to reduce the over-represented class
 print(data_svm["TARGET"].value_counts())
 print('\n')
-data1=data_svm.loc[data['TARGET']==1]
-data0=data_svm.loc[data['TARGET']==0].sample(n=data1.shape[0])
+data1=data_svm.loc[data_svm['TARGET']==1]
+data0=data_svm.loc[data_svm['TARGET']==0].sample(n=data1.shape[0])
 print(data1.shape)
 print(data0.shape)
 data_svm=pd.concat([data0,data1])
@@ -202,8 +211,8 @@ data_rf[obj_columns] = data_rf[obj_columns].apply(lambda x: x.cat.codes)
 # Re-sample the data to reduce the over-represented class
 print(data_rf["TARGET"].value_counts())
 print('\n')
-data1=data_rf.loc[data['TARGET']==1]
-data0=data_rf.loc[data['TARGET']==0].sample(n=data1.shape[0])
+data1=data_rf.loc[data_rf['TARGET']==1]
+data0=data_rf.loc[data_rf['TARGET']==0].sample(n=data1.shape[0])
 print(data1.shape)
 print(data0.shape)
 data_rf=pd.concat([data0,data1])
@@ -294,8 +303,9 @@ hm = sns.heatmap(df_cm, cbar=False, annot=True, square=True, fmt='d', annot_kws=
 
 hm.yaxis.set_ticklabels(hm.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
 hm.xaxis.set_ticklabels(hm.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
-plt.ylabel('True label',fontsize=20)
-plt.xlabel('Predicted label',fontsize=20)
+plt.ylabel('True label',fontsize=14)
+plt.xlabel('Predicted label',fontsize=14)
+plt.rc('font', family='Times New Roman')
 # Show heat map
 plt.tight_layout()
 plt.show()
@@ -313,10 +323,63 @@ hm = sns.heatmap(df_cm, cbar=False, annot=True, square=True, fmt='d', annot_kws=
 
 hm.yaxis.set_ticklabels(hm.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
 hm.xaxis.set_ticklabels(hm.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
-plt.ylabel('True label',fontsize=20)
-plt.xlabel('Predicted label',fontsize=20)
+plt.ylabel('True label',fontsize=14)
+plt.xlabel('Predicted label',fontsize=14)
+plt.rc('font', family='Times New Roman')
 # Show heat map
 plt.tight_layout()
 plt.show()
 
 
+# %%-----------------------------------------------------------------------
+# Naive Bayes
+# Data pre-processing: same as the SVM data pre-processing
+
+# Split the dataset
+# Separate the target variable
+x = data_svm.values[:, 1:]
+y = data_svm.values[:, 0]
+
+# Split the dataset into train and test
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=100)
+
+# creating the classifier object
+clf = GaussianNB()
+
+# performing training
+clf.fit(x_train, y_train)
+#%%-----------------------------------------------------------------------
+# make predictions
+
+# predicton on test
+y_pred = clf.predict(x_test)
+y_pred_score = clf.predict_proba(x_test)
+
+# calculate metrics
+print("\n")
+print("Classification Report: ")
+print(classification_report(y_test,y_pred))
+print("\n")
+print("Accuracy : ", accuracy_score(y_test, y_pred) * 100)
+print("\n")
+print("ROC_AUC : ", roc_auc_score(y_test,y_pred_score[:,1]) * 100)
+print("\n")
+
+#%%-----------------------------------------------------------------------
+# confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+class_names = data_svm['TARGET'].unique()
+
+df_cm = pd.DataFrame(conf_matrix, index=class_names, columns=class_names )
+
+plt.figure(figsize=(5,5))
+hm = sns.heatmap(df_cm, cbar=False, annot=True, square=True, fmt='d', annot_kws={'size': 20}, yticklabels=df_cm.columns, xticklabels=df_cm.columns)
+hm.yaxis.set_ticklabels(hm.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
+hm.xaxis.set_ticklabels(hm.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
+plt.title('Confusion Matrix for Naive Bayes',fontsize=16)
+plt.ylabel('True label',fontsize=20)
+plt.xlabel('Predicted label',fontsize=20)
+plt.rc('font', family='Times New Roman')
+# Show heat map
+plt.tight_layout()
+plt.show()
