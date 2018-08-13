@@ -11,7 +11,7 @@ A group project proposal;
 
 A group final report;
 
-A group vedio presentation (link to Youtube);
+A group video presentation (link to Youtube);
 
 Group code;
 
